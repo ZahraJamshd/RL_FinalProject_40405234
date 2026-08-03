@@ -1,0 +1,42 @@
+{
+    "algorithm": "Q-Learning",
+    "learning_type": "off-policy",
+    "behavior_policy": "epsilon-greedy",
+    "student_id": "40405234",
+    "base_seed": 3,
+    "maze_size": 18,
+    "map_file": "environments/maps/maze_seed_3.txt",
+    "reward_modes": [
+        "sparse",
+        "shaped"
+    ],
+    "alpha": 0.1,
+    "gammas": [
+        0.5,
+        0.9,
+        0.99
+    ],
+    "episodes": 3000,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_episodes": 2400,
+    "epsilon_schedules": [
+        "linear",
+        "exponential"
+    ],
+    "success_window": 100,
+    "training_seeds": [
+        3,
+        4,
+        5
+    ],
+    "update_log_reward_mode": "sparse",
+    "update_log_gamma": 0.9,
+    "update_log_epsilon_schedule": "linear",
+    "update_log_seed": 3,
+    "update_log_episode": 3000,
+    "state_count": 471,
+    "configuration_count": 12,
+    "runs_per_configuration": 3,
+    "training_run_count": 36
+}

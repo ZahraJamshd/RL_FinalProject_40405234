@@ -13,7 +13,6 @@ This project implements and compares the following reinforcement learning algori
 - Value Iteration
 - Q-Learning
 - SARSA Lambda
-- Q-Learning Transfer Learning
 
 The project will also include experiments, visualizations, a graphical interface, and a final analytical report.
 
@@ -22,7 +21,7 @@ The project will also include experiments, visualizations, a graphical interface
 - [x] Project repository initialized
 - [x] Dynamic maze environment
 - [x] Value Iteration
-- [ ] Q-Learning
+- [x] Q-Learning
 - [ ] SARSA Lambda
 - [ ] Graphical Interface
 - [ ] Experiments and Analysis
