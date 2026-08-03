@@ -1,0 +1,19 @@
+{
+    "student_id": "40405234",
+    "base_seed": 3,
+    "maze_size": 18,
+    "map_file": "environments/maps/maze_seed_3.txt",
+    "reward_modes": [
+        "sparse",
+        "shaped"
+    ],
+    "gammas": [
+        0.5,
+        0.9,
+        0.99
+    ],
+    "convergence_threshold": 1e-06,
+    "max_iterations": 3000,
+    "state_count": 471,
+    "experiment_count": 6
+}

@@ -20,8 +20,8 @@ The project will also include experiments, visualizations, a graphical interface
 ## Current Progress
 
 - [x] Project repository initialized
-- [ ] Dynamic maze environment
-- [ ] Value Iteration
+- [x] Dynamic maze environment
+- [x] Value Iteration
 - [ ] Q-Learning
 - [ ] SARSA Lambda
 - [ ] Graphical Interface
