@@ -15,6 +15,9 @@ from agents.value_iteration import run_value_iteration
 from agents.q_learning import extract_q_learning_policy
 from agents.q_learning import train_q_learning
 
+from agents.sarsa_lambda import extract_sarsa_lambda_policy
+from agents.sarsa_lambda import train_sarsa_lambda
+
 from config import BASE_SEED
 from config import MAZE_SIZE
 from config import REWARD_MODES
@@ -33,6 +36,22 @@ from config import Q_LEARNING_SEEDS
 from config import Q_LEARNING_SUCCESS_WINDOW
 from config import Q_LEARNING_UPDATE_LOG_EPISODE
 from config import VALUE_ITERATION_GAMMA
+from config import SARSA_LAMBDA_ALPHA
+from config import SARSA_LAMBDA_EPISODES
+from config import SARSA_LAMBDA_EPSILON_DECAY_EPISODES
+from config import SARSA_LAMBDA_EPSILON_END
+from config import SARSA_LAMBDA_EPSILON_SCHEDULE
+from config import SARSA_LAMBDA_EPSILON_START
+from config import SARSA_LAMBDA_GAMMA
+from config import SARSA_LAMBDA_SEEDS
+from config import SARSA_LAMBDA_SUCCESS_WINDOW
+from config import SARSA_LAMBDA_TRACE_LOG_EPISODE
+from config import SARSA_LAMBDA_TRACE_LOG_REWARD_MODE
+from config import SARSA_LAMBDA_TRACE_LOG_SEED
+from config import SARSA_LAMBDA_TRACE_LOG_VALUE
+from config import SARSA_LAMBDA_TRACE_THRESHOLD
+from config import SARSA_LAMBDA_VALUES
+from config import SARSA_LAMBDA_TRACE_TYPE
 
 from environments.maze import MazeEnvironment
 
@@ -105,6 +124,41 @@ Q_LEARNING_CONFIG_FILE_PATH = (
     / "experiments"
     / "configs"
     / "q_learning_config.json"
+)
+
+SARSA_LAMBDA_MODEL_FILE_PATH = (
+    PROJECT_ROOT
+    / "results"
+    / "models"
+    / "sarsa_lambda_models.csv"
+)
+
+SARSA_LAMBDA_EPISODE_FILE_PATH = (
+    PROJECT_ROOT
+    / "results"
+    / "raw_data"
+    / "sarsa_lambda_episode_metrics.csv"
+)
+
+SARSA_LAMBDA_SUMMARY_FILE_PATH = (
+    PROJECT_ROOT
+    / "results"
+    / "raw_data"
+    / "sarsa_lambda_summary.csv"
+)
+
+SARSA_LAMBDA_TRACE_LOG_FILE_PATH = (
+    PROJECT_ROOT
+    / "results"
+    / "raw_data"
+    / "sarsa_lambda_trace_log.csv"
+)
+
+SARSA_LAMBDA_CONFIG_FILE_PATH = (
+    PROJECT_ROOT
+    / "experiments"
+    / "configs"
+    / "sarsa_lambda_config.json"
 )
 
 def run_value_iteration_experiments():
@@ -393,12 +447,18 @@ def save_value_iteration_results(
         )
 
     return {
-        "models": VALUE_ITERATION_MODEL_FILE_PATH,
+        "models": (
+            VALUE_ITERATION_MODEL_FILE_PATH
+        ),
         "convergence": (
             VALUE_ITERATION_CONVERGENCE_FILE_PATH
         ),
-        "summary": VALUE_ITERATION_SUMMARY_FILE_PATH,
-        "config": VALUE_ITERATION_CONFIG_FILE_PATH
+        "summary": (
+            VALUE_ITERATION_SUMMARY_FILE_PATH
+        ),
+        "config": (
+            VALUE_ITERATION_CONFIG_FILE_PATH
+        )
     }
 
 def run_q_learning_experiments(
@@ -569,6 +629,7 @@ def run_q_learning_experiments(
         f"Config: "
         f"{output_files['config']}"
     )
+
     print()
 
     return experiment_results
@@ -1132,13 +1193,1020 @@ def save_q_learning_results(
         )
 
     return {
-        "episodes": Q_LEARNING_EPISODE_FILE_PATH,
-        "models": Q_LEARNING_MODEL_FILE_PATH,
-        "updates": Q_LEARNING_UPDATE_LOG_FILE_PATH,
-        "summary": Q_LEARNING_SUMMARY_FILE_PATH,
-        "config": Q_LEARNING_CONFIG_FILE_PATH
+        "episodes": (
+            Q_LEARNING_EPISODE_FILE_PATH
+        ),
+        "models": (
+            Q_LEARNING_MODEL_FILE_PATH
+        ),
+        "updates": (
+            Q_LEARNING_UPDATE_LOG_FILE_PATH
+        ),
+        "summary": (
+            Q_LEARNING_SUMMARY_FILE_PATH
+        ),
+        "config": (
+            Q_LEARNING_CONFIG_FILE_PATH
+        )
+    }
+
+def run_sarsa_lambda_experiments(
+    number_of_episodes=(
+        SARSA_LAMBDA_EPISODES
+    )
+):
+    print("SARSA(lambda) experiments")
+    print("-------------------------")
+
+    experiment_results = {}
+
+    configuration_count = (
+        len(REWARD_MODES)
+        * len(SARSA_LAMBDA_VALUES)
+    )
+
+    training_run_count = (
+        configuration_count
+        * len(SARSA_LAMBDA_SEEDS)
+    )
+
+    run_number = 0
+
+    for reward_mode in REWARD_MODES:
+        for lambda_value in (
+            SARSA_LAMBDA_VALUES
+        ):
+            for seed in SARSA_LAMBDA_SEEDS:
+                run_number += 1
+
+                print(
+                    f"[{run_number}/"
+                    f"{training_run_count}] "
+                    f"Reward: {reward_mode} | "
+                    f"Lambda: {lambda_value} | "
+                    f"Seed: {seed}"
+                )
+
+                environment = MazeEnvironment(
+                    map_file_path=MAP_FILE_PATH,
+                    seed=seed,
+                    reward_mode=reward_mode
+                )
+
+                record_trace_episode = None
+
+                is_trace_log_run = (
+                    reward_mode
+                    == (
+                        SARSA_LAMBDA_TRACE_LOG_REWARD_MODE
+                    )
+                    and abs(
+                        lambda_value
+                        - SARSA_LAMBDA_TRACE_LOG_VALUE
+                    )
+                    < 1e-9
+                    and seed
+                    == SARSA_LAMBDA_TRACE_LOG_SEED
+                )
+
+                if is_trace_log_run:
+                    record_trace_episode = min(
+                        SARSA_LAMBDA_TRACE_LOG_EPISODE,
+                        number_of_episodes
+                    )
+
+                result = train_sarsa_lambda(
+                    environment=environment,
+                    number_of_episodes=(
+                        number_of_episodes
+                    ),
+                    alpha=SARSA_LAMBDA_ALPHA,
+                    gamma=SARSA_LAMBDA_GAMMA,
+                    lambda_value=lambda_value,
+                    epsilon_schedule=(
+                        SARSA_LAMBDA_EPSILON_SCHEDULE
+                    ),
+                    epsilon_start=(
+                        SARSA_LAMBDA_EPSILON_START
+                    ),
+                    epsilon_end=(
+                        SARSA_LAMBDA_EPSILON_END
+                    ),
+                    epsilon_decay_episodes=(
+                        SARSA_LAMBDA_EPSILON_DECAY_EPISODES
+                    ),
+                    success_window=(
+                        SARSA_LAMBDA_SUCCESS_WINDOW
+                    ),
+                    trace_threshold=(
+                        SARSA_LAMBDA_TRACE_THRESHOLD
+                    ),
+                    seed=seed,
+                    record_trace_episode=(
+                        record_trace_episode
+                    )
+                )
+
+                result["policy"] = (
+                    extract_sarsa_lambda_policy(
+                        environment=environment,
+                        q_table=result["q_table"]
+                    )
+                )
+
+                result_key = (
+                    reward_mode,
+                    SARSA_LAMBDA_GAMMA,
+                    lambda_value,
+                    SARSA_LAMBDA_EPSILON_SCHEDULE,
+                    seed
+                )
+
+                experiment_results[
+                    result_key
+                ] = result
+
+                final_record = (
+                    result["episode_records"][-1]
+                )
+
+                print(
+                    f"    Final epsilon: "
+                    f"{final_record['epsilon']:.4f} | "
+                    f"Success rate: "
+                    f"{final_record['success_rate']:.2f} | "
+                    f"Time: "
+                    f"{result['execution_time']:.4f}s"
+                )
+
+    runs_with_trace_log = sum(
+        1
+        for result in experiment_results.values()
+        if result["trace_update_records"]
+    )
+
+    trace_row_count = sum(
+        len(result["trace_update_records"])
+        for result in experiment_results.values()
+    )
+
+    print()
+
+    print(
+        f"Configuration count: "
+        f"{configuration_count}"
+    )
+
+    print(
+        f"Runs per configuration: "
+        f"{len(SARSA_LAMBDA_SEEDS)}"
+    )
+
+    print(
+        f"Training run count: "
+        f"{training_run_count}"
+    )
+
+    print(
+        f"Runs with trace log: "
+        f"{runs_with_trace_log}"
+    )
+
+    print(
+        f"Trace log rows: "
+        f"{trace_row_count}"
+    )
+
+    print()
+
+    output_files = save_sarsa_lambda_results(
+        experiment_results
+    )
+
+    print("SARSA(lambda) output files")
+    print("--------------------------")
+
+    print(
+        f"Episode metrics: "
+        f"{output_files['episode_metrics']}"
+    )
+
+    print(
+        f"Models: "
+        f"{output_files['models']}"
+    )
+
+    print(
+        f"Summary: "
+        f"{output_files['summary']}"
+    )
+
+    print(
+        f"Trace log: "
+        f"{output_files['trace_log']}"
+    )
+
+    print(
+        f"Config: "
+        f"{output_files['config']}"
+    )
+
+    print()
+
+    return experiment_results
+
+def save_sarsa_lambda_results(
+    experiment_results
+):
+    output_paths = [
+        SARSA_LAMBDA_MODEL_FILE_PATH,
+        SARSA_LAMBDA_EPISODE_FILE_PATH,
+        SARSA_LAMBDA_SUMMARY_FILE_PATH,
+        SARSA_LAMBDA_TRACE_LOG_FILE_PATH,
+        SARSA_LAMBDA_CONFIG_FILE_PATH
+    ]
+
+    for output_path in output_paths:
+        output_path.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+    with SARSA_LAMBDA_EPISODE_FILE_PATH.open(
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as episode_file:
+        fieldnames = [
+            "reward_mode",
+            "gamma",
+            "lambda",
+            "epsilon_schedule",
+            "seed",
+            "episode",
+            "alpha",
+            "epsilon",
+            "total_reward",
+            "steps",
+            "success",
+            "success_rate",
+            "wall_collisions",
+            "penalty_entries",
+            "final_event"
+        ]
+
+        writer = csv.DictWriter(
+            episode_file,
+            fieldnames=fieldnames
+        )
+
+        writer.writeheader()
+
+        for reward_mode in REWARD_MODES:
+            for lambda_value in (
+                SARSA_LAMBDA_VALUES
+            ):
+                for seed in (
+                    SARSA_LAMBDA_SEEDS
+                ):
+                    result_key = (
+                        reward_mode,
+                        SARSA_LAMBDA_GAMMA,
+                        lambda_value,
+                        SARSA_LAMBDA_EPSILON_SCHEDULE,
+                        seed
+                    )
+
+                    result = experiment_results[
+                        result_key
+                    ]
+
+                    for episode_record in (
+                        result["episode_records"]
+                    ):
+                        writer.writerow({
+                            "reward_mode": (
+                                reward_mode
+                            ),
+                            "gamma": (
+                                SARSA_LAMBDA_GAMMA
+                            ),
+                            "lambda": (
+                                lambda_value
+                            ),
+                            "epsilon_schedule": (
+                                SARSA_LAMBDA_EPSILON_SCHEDULE
+                            ),
+                            "seed": seed,
+                            "episode": (
+                                episode_record[
+                                    "episode"
+                                ]
+                            ),
+                            "alpha": (
+                                episode_record[
+                                    "alpha"
+                                ]
+                            ),
+                            "epsilon": (
+                                episode_record[
+                                    "epsilon"
+                                ]
+                            ),
+                            "total_reward": (
+                                episode_record[
+                                    "total_reward"
+                                ]
+                            ),
+                            "steps": (
+                                episode_record[
+                                    "steps"
+                                ]
+                            ),
+                            "success": (
+                                episode_record[
+                                    "success"
+                                ]
+                            ),
+                            "success_rate": (
+                                episode_record[
+                                    "success_rate"
+                                ]
+                            ),
+                            "wall_collisions": (
+                                episode_record[
+                                    "wall_collisions"
+                                ]
+                            ),
+                            "penalty_entries": (
+                                episode_record[
+                                    "penalty_entries"
+                                ]
+                            ),
+                            "final_event": (
+                                episode_record[
+                                    "final_event"
+                                ]
+                            )
+                        })
+
+    with SARSA_LAMBDA_MODEL_FILE_PATH.open(
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as model_file:
+        fieldnames = [
+            "reward_mode",
+            "gamma",
+            "lambda",
+            "epsilon_schedule",
+            "seed",
+            "row",
+            "column",
+            "has_key",
+            "q_up",
+            "q_down",
+            "q_left",
+            "q_right",
+            "max_q",
+            "best_action",
+            "is_terminal"
+        ]
+
+        writer = csv.DictWriter(
+            model_file,
+            fieldnames=fieldnames
+        )
+
+        writer.writeheader()
+
+        for reward_mode in REWARD_MODES:
+            for lambda_value in (
+                SARSA_LAMBDA_VALUES
+            ):
+                for seed in (
+                    SARSA_LAMBDA_SEEDS
+                ):
+                    result_key = (
+                        reward_mode,
+                        SARSA_LAMBDA_GAMMA,
+                        lambda_value,
+                        SARSA_LAMBDA_EPSILON_SCHEDULE,
+                        seed
+                    )
+
+                    result = experiment_results[
+                        result_key
+                    ]
+
+                    q_table = result["q_table"]
+                    policy = result["policy"]
+
+                    for state, action_values in (
+                        q_table.items()
+                    ):
+                        (
+                            state_row,
+                            state_column,
+                            has_key
+                        ) = state
+
+                        best_action = policy[state]
+
+                        writer.writerow({
+                            "reward_mode": (
+                                reward_mode
+                            ),
+                            "gamma": (
+                                SARSA_LAMBDA_GAMMA
+                            ),
+                            "lambda": (
+                                lambda_value
+                            ),
+                            "epsilon_schedule": (
+                                SARSA_LAMBDA_EPSILON_SCHEDULE
+                            ),
+                            "seed": seed,
+                            "row": state_row,
+                            "column": (
+                                state_column
+                            ),
+                            "has_key": has_key,
+                            "q_up": (
+                                action_values["up"]
+                            ),
+                            "q_down": (
+                                action_values["down"]
+                            ),
+                            "q_left": (
+                                action_values["left"]
+                            ),
+                            "q_right": (
+                                action_values["right"]
+                            ),
+                            "max_q": max(
+                                action_values.values()
+                            ),
+                            "best_action": (
+                                best_action
+                            ),
+                            "is_terminal": (
+                                best_action is None
+                            )
+                        })
+
+    with SARSA_LAMBDA_SUMMARY_FILE_PATH.open(
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as summary_file:
+        fieldnames = [
+            "reward_mode",
+            "gamma",
+            "lambda",
+            "trace_type",
+            "epsilon_schedule",
+            "seed",
+            "alpha",
+            "episodes",
+            "execution_time",
+            "final_epsilon",
+            "successful_episodes",
+            "overall_success_rate",
+            "final_window_success_rate",
+            "mean_reward",
+            "mean_reward_last_window",
+            "mean_steps",
+            "mean_steps_last_window",
+            "total_wall_collisions",
+            "total_penalty_entries",
+            "state_count"
+        ]
+
+        writer = csv.DictWriter(
+            summary_file,
+            fieldnames=fieldnames
+        )
+
+        writer.writeheader()
+
+        for reward_mode in REWARD_MODES:
+            for lambda_value in (
+                SARSA_LAMBDA_VALUES
+            ):
+                for seed in (
+                    SARSA_LAMBDA_SEEDS
+                ):
+                    result_key = (
+                        reward_mode,
+                        SARSA_LAMBDA_GAMMA,
+                        lambda_value,
+                        SARSA_LAMBDA_EPSILON_SCHEDULE,
+                        seed
+                    )
+
+                    result = experiment_results[
+                        result_key
+                    ]
+
+                    episode_records = result[
+                        "episode_records"
+                    ]
+
+                    episode_count = len(
+                        episode_records
+                    )
+
+                    last_window_records = (
+                        episode_records[
+                            -SARSA_LAMBDA_SUCCESS_WINDOW:
+                        ]
+                    )
+
+                    successful_episodes = sum(
+                        int(record["success"])
+                        for record in episode_records
+                    )
+
+                    successful_last_window = sum(
+                        int(record["success"])
+                        for record in (
+                            last_window_records
+                        )
+                    )
+
+                    mean_reward = sum(
+                        record["total_reward"]
+                        for record in episode_records
+                    ) / episode_count
+
+                    mean_reward_last_window = sum(
+                        record["total_reward"]
+                        for record in (
+                            last_window_records
+                        )
+                    ) / len(last_window_records)
+
+                    mean_steps = sum(
+                        record["steps"]
+                        for record in episode_records
+                    ) / episode_count
+
+                    mean_steps_last_window = sum(
+                        record["steps"]
+                        for record in (
+                            last_window_records
+                        )
+                    ) / len(last_window_records)
+
+                    writer.writerow({
+                        "reward_mode": (
+                            reward_mode
+                        ),
+                        "gamma": (
+                            SARSA_LAMBDA_GAMMA
+                        ),
+                        "lambda": (
+                            lambda_value
+                        ),
+                        "trace_type": (
+                            SARSA_LAMBDA_TRACE_TYPE
+                        ),
+                        "epsilon_schedule": (
+                            SARSA_LAMBDA_EPSILON_SCHEDULE
+                        ),
+                        "seed": seed,
+                        "alpha": (
+                            SARSA_LAMBDA_ALPHA
+                        ),
+                        "episodes": (
+                            episode_count
+                        ),
+                        "execution_time": (
+                            result["execution_time"]
+                        ),
+                        "final_epsilon": (
+                            episode_records[-1][
+                                "epsilon"
+                            ]
+                        ),
+                        "successful_episodes": (
+                            successful_episodes
+                        ),
+                        "overall_success_rate": (
+                            successful_episodes
+                            / episode_count
+                        ),
+                        "final_window_success_rate": (
+                            successful_last_window
+                            / len(last_window_records)
+                        ),
+                        "mean_reward": (
+                            mean_reward
+                        ),
+                        "mean_reward_last_window": (
+                            mean_reward_last_window
+                        ),
+                        "mean_steps": mean_steps,
+                        "mean_steps_last_window": (
+                            mean_steps_last_window
+                        ),
+                        "total_wall_collisions": sum(
+                            record[
+                                "wall_collisions"
+                            ]
+                            for record in (
+                                episode_records
+                            )
+                        ),
+                        "total_penalty_entries": sum(
+                            record[
+                                "penalty_entries"
+                            ]
+                            for record in (
+                                episode_records
+                            )
+                        ),
+                        "state_count": len(
+                            result["q_table"]
+                        )
+                    })
+
+    with SARSA_LAMBDA_TRACE_LOG_FILE_PATH.open(
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as trace_file:
+        fieldnames = [
+            "reward_mode",
+            "gamma",
+            "lambda",
+            "trace_type",
+            "epsilon_schedule",
+            "seed",
+            "episode",
+            "step",
+            "state_row",
+            "state_column",
+            "has_key_before",
+            "selected_action",
+            "executed_action",
+            "reward",
+            "next_row",
+            "next_column",
+            "has_key_after",
+            "next_action",
+            "done",
+            "event",
+            "epsilon",
+            "alpha",
+            "current_old_q",
+            "next_action_q",
+            "td_target",
+            "td_error",
+            "trace_row",
+            "trace_column",
+            "trace_has_key",
+            "trace_action",
+            "eligibility_before_decay",
+            "eligibility_after_decay",
+            "trace_old_q",
+            "update_amount",
+            "trace_new_q",
+            "active_traces_before_decay",
+            "active_traces_after_decay"
+        ]
+
+        writer = csv.DictWriter(
+            trace_file,
+            fieldnames=fieldnames
+        )
+
+        writer.writeheader()
+
+        for reward_mode in REWARD_MODES:
+            for lambda_value in (
+                SARSA_LAMBDA_VALUES
+            ):
+                for seed in (
+                    SARSA_LAMBDA_SEEDS
+                ):
+                    result_key = (
+                        reward_mode,
+                        SARSA_LAMBDA_GAMMA,
+                        lambda_value,
+                        SARSA_LAMBDA_EPSILON_SCHEDULE,
+                        seed
+                    )
+
+                    result = experiment_results[
+                        result_key
+                    ]
+
+                    for trace_record in (
+                        result[
+                            "trace_update_records"
+                        ]
+                    ):
+                        (
+                            state_row,
+                            state_column,
+                            has_key_before
+                        ) = trace_record["state"]
+
+                        (
+                            next_row,
+                            next_column,
+                            has_key_after
+                        ) = trace_record[
+                            "next_state"
+                        ]
+
+                        (
+                            trace_row,
+                            trace_column,
+                            trace_has_key
+                        ) = trace_record[
+                            "trace_state"
+                        ]
+
+                        writer.writerow({
+                            "reward_mode": (
+                                reward_mode
+                            ),
+                            "gamma": (
+                                trace_record["gamma"]
+                            ),
+                            "lambda": (
+                                trace_record["lambda"]
+                            ),
+                            "trace_type": (
+                                SARSA_LAMBDA_TRACE_TYPE
+                            ),
+                            "epsilon_schedule": (
+                                trace_record[
+                                    "epsilon_schedule"
+                                ]
+                            ),
+                            "seed": (
+                                trace_record["seed"]
+                            ),
+                            "episode": (
+                                trace_record["episode"]
+                            ),
+                            "step": (
+                                trace_record["step"]
+                            ),
+                            "state_row": state_row,
+                            "state_column": (
+                                state_column
+                            ),
+                            "has_key_before": (
+                                has_key_before
+                            ),
+                            "selected_action": (
+                                trace_record[
+                                    "selected_action"
+                                ]
+                            ),
+                            "executed_action": (
+                                trace_record[
+                                    "executed_action"
+                                ]
+                            ),
+                            "reward": (
+                                trace_record["reward"]
+                            ),
+                            "next_row": next_row,
+                            "next_column": (
+                                next_column
+                            ),
+                            "has_key_after": (
+                                has_key_after
+                            ),
+                            "next_action": (
+                                trace_record[
+                                    "next_action"
+                                ]
+                            ),
+                            "done": (
+                                trace_record["done"]
+                            ),
+                            "event": (
+                                trace_record["event"]
+                            ),
+                            "epsilon": (
+                                trace_record["epsilon"]
+                            ),
+                            "alpha": (
+                                trace_record["alpha"]
+                            ),
+                            "current_old_q": (
+                                trace_record[
+                                    "current_old_q"
+                                ]
+                            ),
+                            "next_action_q": (
+                                trace_record[
+                                    "next_action_q"
+                                ]
+                            ),
+                            "td_target": (
+                                trace_record[
+                                    "td_target"
+                                ]
+                            ),
+                            "td_error": (
+                                trace_record[
+                                    "td_error"
+                                ]
+                            ),
+                            "trace_row": trace_row,
+                            "trace_column": (
+                                trace_column
+                            ),
+                            "trace_has_key": (
+                                trace_has_key
+                            ),
+                            "trace_action": (
+                                trace_record[
+                                    "trace_action"
+                                ]
+                            ),
+                            "eligibility_before_decay": (
+                                trace_record[
+                                    "eligibility"
+                                ]
+                            ),
+                            "eligibility_after_decay": (
+                                trace_record[
+                                    "eligibility_after_decay"
+                                ]
+                            ),
+                            "trace_old_q": (
+                                trace_record[
+                                    "old_q"
+                                ]
+                            ),
+                            "update_amount": (
+                                trace_record[
+                                    "update_amount"
+                                ]
+                            ),
+                            "trace_new_q": (
+                                trace_record[
+                                    "new_q"
+                                ]
+                            ),
+                            "active_traces_before_decay": (
+                                trace_record[
+                                    "active_traces_before_decay"
+                                ]
+                            ),
+                            "active_traces_after_decay": (
+                                trace_record[
+                                    "active_traces_after_decay"
+                                ]
+                            )
+                        })
+
+    first_result = next(
+        iter(experiment_results.values())
+    )
+
+    episode_count = len(
+        first_result["episode_records"]
+    )
+
+    state_count = len(
+        first_result["q_table"]
+    )
+
+    trace_log_episode = min(
+        SARSA_LAMBDA_TRACE_LOG_EPISODE,
+        episode_count
+    )
+
+    trace_log_row_count = sum(
+        len(result["trace_update_records"])
+        for result in experiment_results.values()
+    )
+
+    configuration_count = (
+        len(REWARD_MODES)
+        * len(SARSA_LAMBDA_VALUES)
+    )
+
+    training_run_count = (
+        configuration_count
+        * len(SARSA_LAMBDA_SEEDS)
+    )
+
+    config_data = {
+        "algorithm": "SARSA(lambda)",
+        "learning_type": "on-policy",
+        "behavior_policy": "epsilon-greedy",
+        "trace_type": (
+            SARSA_LAMBDA_TRACE_TYPE
+        ),
+        "student_id": STUDENT_ID,
+        "base_seed": BASE_SEED,
+        "maze_size": MAZE_SIZE,
+        "map_file": (
+            MAP_FILE_PATH
+            .relative_to(PROJECT_ROOT)
+            .as_posix()
+        ),
+        "reward_modes": REWARD_MODES,
+        "alpha": SARSA_LAMBDA_ALPHA,
+        "gamma": SARSA_LAMBDA_GAMMA,
+        "lambda_values": (
+            SARSA_LAMBDA_VALUES
+        ),
+        "episodes": episode_count,
+        "epsilon_start": (
+            SARSA_LAMBDA_EPSILON_START
+        ),
+        "epsilon_end": (
+            SARSA_LAMBDA_EPSILON_END
+        ),
+        "epsilon_decay_episodes": (
+            SARSA_LAMBDA_EPSILON_DECAY_EPISODES
+        ),
+        "epsilon_schedule": (
+            SARSA_LAMBDA_EPSILON_SCHEDULE
+        ),
+        "success_window": (
+            SARSA_LAMBDA_SUCCESS_WINDOW
+        ),
+        "training_seeds": (
+            SARSA_LAMBDA_SEEDS
+        ),
+        "trace_threshold": (
+            SARSA_LAMBDA_TRACE_THRESHOLD
+        ),
+        "trace_log_reward_mode": (
+            SARSA_LAMBDA_TRACE_LOG_REWARD_MODE
+        ),
+        "trace_log_gamma": (
+            SARSA_LAMBDA_GAMMA
+        ),
+        "trace_log_lambda": (
+            SARSA_LAMBDA_TRACE_LOG_VALUE
+        ),
+        "trace_log_epsilon_schedule": (
+            SARSA_LAMBDA_EPSILON_SCHEDULE
+        ),
+        "trace_log_seed": (
+            SARSA_LAMBDA_TRACE_LOG_SEED
+        ),
+        "trace_log_episode": (
+            trace_log_episode
+        ),
+        "trace_log_row_count": (
+            trace_log_row_count
+        ),
+        "state_count": state_count,
+        "configuration_count": (
+            configuration_count
+        ),
+        "runs_per_configuration": len(
+            SARSA_LAMBDA_SEEDS
+        ),
+        "training_run_count": (
+            training_run_count
+        )
+    }
+
+    with SARSA_LAMBDA_CONFIG_FILE_PATH.open(
+        "w",
+        encoding="utf-8"
+    ) as config_file:
+        json.dump(
+            config_data,
+            config_file,
+            indent=4
+        )
+
+    return {
+        "models": (
+            SARSA_LAMBDA_MODEL_FILE_PATH
+        ),
+        "episode_metrics": (
+            SARSA_LAMBDA_EPISODE_FILE_PATH
+        ),
+        "summary": (
+            SARSA_LAMBDA_SUMMARY_FILE_PATH
+        ),
+        "trace_log": (
+            SARSA_LAMBDA_TRACE_LOG_FILE_PATH
+        ),
+        "config": (
+            SARSA_LAMBDA_CONFIG_FILE_PATH
+        )
     }
 
 if __name__ == "__main__":
     run_value_iteration_experiments()
     run_q_learning_experiments()
+    run_sarsa_lambda_experiments()

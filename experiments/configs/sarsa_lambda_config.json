@@ -1,0 +1,45 @@
+{
+    "algorithm": "SARSA(lambda)",
+    "learning_type": "on-policy",
+    "behavior_policy": "epsilon-greedy",
+    "trace_type": "replacing",
+    "student_id": "40405234",
+    "base_seed": 3,
+    "maze_size": 18,
+    "map_file": "environments/maps/maze_seed_3.txt",
+    "reward_modes": [
+        "sparse",
+        "shaped"
+    ],
+    "alpha": 0.1,
+    "gamma": 0.9,
+    "lambda_values": [
+        0.0,
+        0.3,
+        0.7,
+        0.9
+    ],
+    "episodes": 3000,
+    "epsilon_start": 1.0,
+    "epsilon_end": 0.05,
+    "epsilon_decay_episodes": 2400,
+    "epsilon_schedule": "exponential",
+    "success_window": 100,
+    "training_seeds": [
+        3,
+        4,
+        5
+    ],
+    "trace_threshold": 1e-06,
+    "trace_log_reward_mode": "sparse",
+    "trace_log_gamma": 0.9,
+    "trace_log_lambda": 0.7,
+    "trace_log_epsilon_schedule": "exponential",
+    "trace_log_seed": 3,
+    "trace_log_episode": 3000,
+    "trace_log_row_count": 1030,
+    "state_count": 471,
+    "configuration_count": 8,
+    "runs_per_configuration": 3,
+    "training_run_count": 24
+}
