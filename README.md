@@ -8,23 +8,25 @@
 
 ## Project Description
 
-This project implements and compares the following reinforcement learning algorithms in a dynamic maze environment:
+This project implements and compares reinforcement learning algorithms in a stochastic maze environment containing walls, penalty cells, a key, a door, a goal, and teleporters.
+
+The implemented algorithms are:
 
 - Value Iteration
 - Q-Learning
 - SARSA(λ) with replacing eligibility traces
 
-The project will also include experiments, visualizations, a graphical interface, and a final analytical report. Experimental results, learned models, training metrics, and visualizations are stored in the `results` directory.
+Both sparse and shaped reward modes are evaluated. The project includes experiments, visualizations, policy-agreement analysis, and a graphical interface. Experimental results, learned models, training metrics, and figures are stored in the `results` directory.
 
 ## Current Progress
 
 - [x] Project repository initialized
-- [x] Dynamic maze environment
+- [x] Stochastic maze environment
 - [x] Value Iteration
 - [x] Q-Learning
 - [x] SARSA(λ)
-- [ ] Graphical interface
-- [ ] Final analytical report
+- [x] Graphical interface
+- [x] Final analytical report
 
 ## Installation
 
@@ -53,6 +55,14 @@ Generate the analysis figures:
 ```cmd
 python experiments\analysis.py
 ```
+
+Launch the graphical interface:
+
+```cmd
+python gui\app.py
+```
+
+The graphical interface loads saved policies for Value Iteration, Q-Learning, and SARSA(λ). It supports sparse and shaped reward modes and provides Start, Pause, Step, and Reset controls for visualizing agent behavior.
 
 ## Output Directories
 
